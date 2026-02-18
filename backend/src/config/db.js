@@ -4,7 +4,7 @@ const connectDB = async () => {
   const uri =
     process.env.MONGO_URI ||
     process.env.MONGODB_URI ||
-    "mongodb://127.0.0.1:27017/mern_final_eval";
+    "mongodb+srv://backendUser:StrongPass123!@cluster0.4pxkpy7.mongodb.net/?appName=Cluster0";
   try {
     await mongoose.connect(uri);
     console.log("MongoDB connected");

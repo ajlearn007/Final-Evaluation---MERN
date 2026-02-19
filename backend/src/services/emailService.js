@@ -9,6 +9,11 @@ const normalizedEnv = (value) =>
     .replace(/^['"]|['"]$/g, "")
     .toLowerCase();
 
+const normalizedRawEnv = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/^['"]|['"]$/g, "");
+
 const buildOtpEmailTemplate = (otp) => ({
   subject: "CANOVA - Password Reset OTP",
   html: `
@@ -99,7 +104,7 @@ const sendViaSMTP = async (email, message) => {
     const { transporter, reason } = createTransporter();
 
     if (!transporter) {
-      return { success: false, reason };
+      return { success: false, reason, provider: "smtp" };
     }
 
     const mailOptions = {
@@ -110,25 +115,30 @@ const sendViaSMTP = async (email, message) => {
     };
 
     await transporter.sendMail(mailOptions);
-    return { success: true };
+    return { success: true, provider: "smtp" };
   } catch (error) {
     console.error("Error sending OTP email:", error.message);
     const reason =
       error && error.message && error.message.toLowerCase().includes("timeout")
         ? "smtp_timeout"
         : "smtp_error";
-    return { success: false, reason };
+    return { success: false, reason, provider: "smtp" };
   }
 };
 
 const sendViaResend = async (email, message) => {
   try {
-    const apiKey = process.env.RESEND_API_KEY;
-    const from =
-      process.env.RESEND_FROM || process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    const apiKey = normalizedRawEnv(process.env.RESEND_API_KEY);
+    const from = normalizedRawEnv(
+      process.env.RESEND_FROM || process.env.EMAIL_FROM || process.env.EMAIL_USER,
+    );
 
     if (!apiKey || !from) {
-      return { success: false, reason: "missing_resend_config" };
+      return {
+        success: false,
+        reason: "missing_resend_config",
+        provider: "resend",
+      };
     }
 
     const { statusCode, body } = await postJson(
@@ -145,14 +155,14 @@ const sendViaResend = async (email, message) => {
     );
 
     if (statusCode >= 200 && statusCode < 300) {
-      return { success: true };
+      return { success: true, provider: "resend" };
     }
 
     console.error("Error sending OTP email with Resend:", statusCode, body);
-    return { success: false, reason: "resend_error" };
+    return { success: false, reason: "resend_error", provider: "resend" };
   } catch (error) {
     console.error("Error sending OTP email with Resend:", error.message);
-    return { success: false, reason: "resend_error" };
+    return { success: false, reason: "resend_error", provider: "resend" };
   }
 };
 
@@ -179,6 +189,10 @@ const sendOTPEmail = async (email, otp) => {
   if (smtpResult.success) return smtpResult;
 
   if (shouldFallbackToResend()) {
+    console.warn(
+      "SMTP send failed, trying Resend fallback. Reason:",
+      smtpResult.reason || "unknown",
+    );
     return sendViaResend(email, message);
   }
 

@@ -99,6 +99,11 @@ router.post("/forgot-password", async (req, res) => {
     if (emailResult.success) {
       res.json({ message: "OTP sent to your email", emailSent: true });
     } else {
+      console.error("OTP email send failed", {
+        provider: emailResult.provider || "unknown",
+        reason: emailResult.reason || "unknown",
+      });
+
       if (process.env.NODE_ENV !== "production") {
         return res.status(200).json({
           message:
@@ -164,6 +169,7 @@ router.post("/test-email", async (req, res) => {
         message: "Test email sent successfully",
         email: email,
         otp: testOtp,
+        provider: emailResult.provider || "unknown",
       });
     } else {
       res.status(500).json({
@@ -182,6 +188,7 @@ router.post("/test-email", async (req, res) => {
             String(process.env.EMAIL_FALLBACK_TO_RESEND || "").toLowerCase() ===
             "true",
         },
+        provider: emailResult.provider || "unknown",
         reason: emailResult.reason || "unknown",
       });
     }

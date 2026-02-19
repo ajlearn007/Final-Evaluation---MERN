@@ -169,8 +169,18 @@ router.post("/test-email", async (req, res) => {
       res.status(500).json({
         message: "Email service not configured",
         config: {
+          provider: String(process.env.EMAIL_PROVIDER || "smtp").toLowerCase(),
           hasUser: !!process.env.EMAIL_USER,
           hasPass: !!process.env.EMAIL_PASS,
+          hasResendKey: !!process.env.RESEND_API_KEY,
+          hasResendFrom: !!(
+            process.env.RESEND_FROM ||
+            process.env.EMAIL_FROM ||
+            process.env.EMAIL_USER
+          ),
+          fallbackToResend:
+            String(process.env.EMAIL_FALLBACK_TO_RESEND || "").toLowerCase() ===
+            "true",
         },
         reason: emailResult.reason || "unknown",
       });

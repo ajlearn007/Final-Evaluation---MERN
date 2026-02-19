@@ -3,6 +3,12 @@ const https = require("https");
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
+const normalizedEnv = (value) =>
+  String(value || "")
+    .trim()
+    .replace(/^['"]|['"]$/g, "")
+    .toLowerCase();
+
 const buildOtpEmailTemplate = (otp) => ({
   subject: "CANOVA - Password Reset OTP",
   html: `
@@ -151,7 +157,7 @@ const sendViaResend = async (email, message) => {
 };
 
 const shouldUseResend = () => {
-  const provider = String(process.env.EMAIL_PROVIDER || "").toLowerCase();
+  const provider = normalizedEnv(process.env.EMAIL_PROVIDER);
   if (provider === "resend") return true;
   if (provider === "smtp") return false;
 
@@ -160,7 +166,7 @@ const shouldUseResend = () => {
 
 const shouldFallbackToResend = () =>
   !!process.env.RESEND_API_KEY &&
-  String(process.env.EMAIL_FALLBACK_TO_RESEND || "").toLowerCase() === "true";
+  normalizedEnv(process.env.EMAIL_FALLBACK_TO_RESEND) === "true";
 
 const sendOTPEmail = async (email, otp) => {
   const message = buildOtpEmailTemplate(otp);
